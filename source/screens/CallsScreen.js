@@ -1,4 +1,5 @@
 import {
+  ActivityIndicator,
   FlatList,
   Image,
   SafeAreaView,
@@ -7,50 +8,53 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native'
-import React, {useMemo} from 'react'
+import React, {useEffect, useState} from 'react'
 import Feather from 'react-native-vector-icons/Feather'
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons'
 import {useAuth} from '../context/AuthContext'
-import {getAvatarById} from '../utils/avatars'
+import {listenRecentCalls} from '../services/callService'
+import {formatMessageTime, getAvatarById} from '../utils/avatars'
 
 const CallsScreen = ({navigation}) => {
   const {user} = useAuth()
+  const [calls, setCalls] = useState([])
+  const [loading, setLoading] = useState(true)
 
-  const recentCalls = useMemo(
-    () => [
-      {
-        id: '1',
-        name: 'Alex Linderson',
-        type: 'incoming',
-        mode: 'audio',
-        time: 'Today, 09:25 AM',
-        userId: 'alex',
-      },
-      {
-        id: '2',
-        name: 'John Abraham',
-        type: 'outgoing',
-        mode: 'video',
-        time: 'Yesterday, 08:10 PM',
-        userId: 'john',
-      },
-      {
-        id: '3',
-        name: 'Sabila Sayma',
-        type: 'missed',
-        mode: 'audio',
-        time: 'Monday, 07:40 PM',
-        userId: 'sabila',
-      },
-    ],
-    [],
-  )
-
-  const iconForCall = item => {
-    if (item.mode === 'video') {
-      return 'video'
+  useEffect(() => {
+    if (!user?.uid) {
+      return undefined
     }
-    return 'phone'
+    const unsubscribe = listenRecentCalls(
+      user.uid,
+      next => {
+        setCalls(next)
+        setLoading(false)
+      },
+      error => {
+        console.warn('Calls listen failed', error)
+        setLoading(false)
+      },
+    )
+    return unsubscribe
+  }, [user?.uid])
+
+  const mapCall = item => {
+    const outgoing = item.callerId === user.uid
+    const otherId = outgoing ? item.calleeId : item.callerId
+    const otherName = outgoing ? item.calleeName : item.callerName
+    let type = outgoing ? 'outgoing' : 'incoming'
+    if (item.status === 'missed' || item.status === 'rejected') {
+      type = outgoing ? 'outgoing' : 'missed'
+    }
+    return {
+      id: item.id,
+      name: otherName || 'User',
+      type,
+      mode: item.mode || 'audio',
+      time: formatMessageTime(item.createdAt) || 'Recently',
+      userId: otherId,
+      status: item.status,
+    }
   }
 
   const colorForType = type => {
@@ -61,6 +65,15 @@ const CallsScreen = ({navigation}) => {
       return '#24786D'
     }
     return '#1E1E1E'
+  }
+
+  const startCall = (item, mode) => {
+    navigation.navigate('Call', {
+      name: item.name,
+      mode,
+      otherUserId: item.userId,
+      role: 'caller',
+    })
   }
 
   return (
@@ -80,50 +93,58 @@ const CallsScreen = ({navigation}) => {
       <View style={styles.body}>
         <View style={styles.handle} />
         <Text style={styles.sectionTitle}>Recent</Text>
-        <FlatList
-          data={recentCalls}
-          keyExtractor={item => item.id}
-          contentContainerStyle={{paddingBottom: 30}}
-          ListEmptyComponent={
-            <Text style={styles.empty}>No recent calls yet.</Text>
-          }
-          renderItem={({item}) => (
-            <TouchableOpacity
-              style={styles.row}
-              onPress={() =>
-                navigation.navigate('Call', {
-                  name: item.name,
-                  mode: item.mode,
-                  otherUserId: item.userId,
-                })
-              }>
-              <Image
-                source={getAvatarById(item.userId)}
-                style={styles.rowAvatar}
-              />
-              <View style={styles.rowInfo}>
-                <Text style={styles.name}>{item.name}</Text>
-                <View style={styles.metaRow}>
-                  <MaterialIcons
-                    name={
-                      item.type === 'outgoing' ? 'call-made' : 'call-received'
-                    }
-                    size={14}
-                    color={colorForType(item.type)}
-                  />
-                  <Text style={[styles.meta, {color: colorForType(item.type)}]}>
-                    {item.type === 'missed' ? 'Missed' : item.type} · {item.time}
-                  </Text>
+        {loading ? (
+          <ActivityIndicator color="#24786D" style={{marginTop: 30}} />
+        ) : (
+          <FlatList
+            data={calls.map(mapCall)}
+            keyExtractor={item => item.id}
+            contentContainerStyle={{paddingBottom: 30}}
+            ListEmptyComponent={
+              <Text style={styles.empty}>No recent calls yet.</Text>
+            }
+            renderItem={({item}) => (
+              <TouchableOpacity
+                style={styles.row}
+                onPress={() => startCall(item, item.mode)}>
+                <Image
+                  source={getAvatarById(item.userId)}
+                  style={styles.rowAvatar}
+                />
+                <View style={styles.rowInfo}>
+                  <Text style={styles.name}>{item.name}</Text>
+                  <View style={styles.metaRow}>
+                    <MaterialIcons
+                      name={
+                        item.type === 'outgoing'
+                          ? 'call-made'
+                          : 'call-received'
+                      }
+                      size={14}
+                      color={colorForType(item.type)}
+                    />
+                    <Text
+                      style={[styles.meta, {color: colorForType(item.type)}]}>
+                      {item.type === 'missed' ? 'Missed' : item.type} ·{' '}
+                      {item.time}
+                    </Text>
+                  </View>
                 </View>
-              </View>
-              <Feather
-                name={iconForCall(item)}
-                size={20}
-                color="#24786D"
-              />
-            </TouchableOpacity>
-          )}
-        />
+                <TouchableOpacity
+                  onPress={() =>
+                    startCall(item, item.mode === 'video' ? 'video' : 'audio')
+                  }
+                  hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
+                  <Feather
+                    name={item.mode === 'video' ? 'video' : 'phone'}
+                    size={20}
+                    color="#24786D"
+                  />
+                </TouchableOpacity>
+              </TouchableOpacity>
+            )}
+          />
+        )}
       </View>
     </SafeAreaView>
   )

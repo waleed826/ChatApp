@@ -123,6 +123,7 @@ const ChatScreen = ({navigation, route}) => {
               name: title,
               mode: 'audio',
               otherUserId,
+              role: 'caller',
             })
           }>
           <Feather name="phone" size={20} color="#fff" />
@@ -134,6 +135,7 @@ const ChatScreen = ({navigation, route}) => {
               name: title,
               mode: 'video',
               otherUserId,
+              role: 'caller',
             })
           }>
           <Feather name="video" size={20} color="#fff" />

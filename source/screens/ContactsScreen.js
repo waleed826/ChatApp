@@ -127,7 +127,37 @@ const ContactsScreen = ({navigation}) => {
                 {openingId === item.uid ? (
                   <ActivityIndicator color="#24786D" />
                 ) : (
-                  <MaterialIcons name="chat-bubble-outline" size={22} color="#24786D" />
+                  <View style={styles.actions}>
+                    <TouchableOpacity
+                      style={styles.actionBtn}
+                      onPress={() =>
+                        navigation.navigate('Call', {
+                          name: item.name || item.email || 'User',
+                          mode: 'audio',
+                          otherUserId: item.uid,
+                          role: 'caller',
+                        })
+                      }>
+                      <Feather name="phone" size={18} color="#24786D" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.actionBtn}
+                      onPress={() =>
+                        navigation.navigate('Call', {
+                          name: item.name || item.email || 'User',
+                          mode: 'video',
+                          otherUserId: item.uid,
+                          role: 'caller',
+                        })
+                      }>
+                      <Feather name="video" size={18} color="#24786D" />
+                    </TouchableOpacity>
+                    <MaterialIcons
+                      name="chat-bubble-outline"
+                      size={22}
+                      color="#24786D"
+                    />
+                  </View>
                 )}
               </TouchableOpacity>
             )}
@@ -193,5 +223,7 @@ const styles = StyleSheet.create({
   rowInfo: {flex: 1},
   name: {fontSize: 16, fontWeight: '600', color: '#1E1E1E'},
   email: {color: 'gray', marginTop: 2, fontSize: 13},
+  actions: {flexDirection: 'row', alignItems: 'center', gap: 10},
+  actionBtn: {padding: 4},
   empty: {textAlign: 'center', color: 'gray', marginTop: 40},
 })

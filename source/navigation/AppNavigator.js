@@ -1,7 +1,9 @@
-import React from 'react'
+import React, {useRef} from 'react'
 import {NavigationContainer} from '@react-navigation/native'
 import {createNativeStackNavigator} from '@react-navigation/native-stack'
 import {useAuth} from '../context/AuthContext'
+import {CallProvider} from '../context/CallContext'
+import IncomingCallModal from '../components/IncomingCallModal'
 import SplashScreen from '../screens/SplashScreen'
 import AccountScreen from '../screens/AccountScreen'
 import SignIn from '../screens/SignIn'
@@ -28,9 +30,26 @@ const AppStack = () => (
     <Stack.Screen name="Chat" component={ChatScreen} />
     <Stack.Screen name="Users" component={UsersScreen} />
     <Stack.Screen name="Profile" component={ProfileScreen} />
-    <Stack.Screen name="Call" component={CallScreen} />
+    <Stack.Screen
+      name="Call"
+      component={CallScreen}
+      options={{gestureEnabled: false, animation: 'fade'}}
+    />
   </Stack.Navigator>
 )
+
+const AuthenticatedApp = () => {
+  const navigationRef = useRef(null)
+
+  return (
+    <CallProvider>
+      <NavigationContainer ref={navigationRef}>
+        <AppStack />
+      </NavigationContainer>
+      <IncomingCallModal navigationRef={navigationRef} />
+    </CallProvider>
+  )
+}
 
 const AppNavigator = () => {
   const {user, initializing} = useAuth()
@@ -39,11 +58,15 @@ const AppNavigator = () => {
     return <SplashScreen />
   }
 
-  return (
-    <NavigationContainer>
-      {user ? <AppStack /> : <AuthStack />}
-    </NavigationContainer>
-  )
+  if (!user) {
+    return (
+      <NavigationContainer>
+        <AuthStack />
+      </NavigationContainer>
+    )
+  }
+
+  return <AuthenticatedApp />
 }
 
 export default AppNavigator
