@@ -1,30 +1,18 @@
-import { Image, StyleSheet, Text, View } from 'react-native'
 import React from 'react'
-import SplashScreen from './source/screens/SplashScreen'
-import AccountScreen from './source/screens/AccountScreen'
-import SignIn from './source/screens/SignIn'
-import SignUp from './source/screens/SignUp'
-import HomeScreen from './source/screens/HomeScreen'
+import {StatusBar} from 'react-native'
+import {SafeAreaProvider} from 'react-native-safe-area-context'
+import {AuthProvider} from './source/context/AuthContext'
+import AppNavigator from './source/navigation/AppNavigator'
 
 const App = () => {
   return (
-    // <View>
-    //   <Text>Abc</Text>
-    //   {/* <Image source={require('./src/assets/images/playstore.png')} /> */}
-    //   <Image source={{uri: 'https://reactjs.org/logo-og.png'}}
-    //    style={{width: 200, height: 200}} />
-    //    {/* <Image source={require('./src/logoimage.png')}
-       
-    //    style={{width: 200, height: 200}}/> */}
-    // </View>
-      //  <SplashScreen/>
-      // <AccountScreen/>
-      // <SignIn/>
-      // <SignUp/>
-      <HomeScreen/>
+    <SafeAreaProvider>
+      <AuthProvider>
+        <StatusBar barStyle="light-content" backgroundColor="#1E1E1E" />
+        <AppNavigator />
+      </AuthProvider>
+    </SafeAreaProvider>
   )
 }
 
 export default App
-
-const styles = StyleSheet.create({})
